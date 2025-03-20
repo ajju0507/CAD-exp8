@@ -1,0 +1,163 @@
+Experiment 8 - Microservices Architecture
+
+Step 1: Create a directory and install docker desktop
+
+Install docker desktop 
+docker --version
+
+mkdir microservices-app
+cd microservices-app
+
+in new directory
+create 2 directory 
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>mkdir exp8_product_service
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>mkdir exp8_order_servvice
+
+
+Step 2 : Create app.py and Docker in the created 2 dir
+
+
+2.1 -- product_service
+
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>cd exp8_product_service
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app\exp8_product_service>echo. > app.py
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app\exp8_product_service>notepad app.py 
+
+I) app.py enter code 
+
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+products = {
+    1: {"name": "Laptop", "price": 1200},
+    2: {"name": "Mouse", "price": 25},
+}
+
+@app.route('/products/<int:product_id>')
+def get_product(product_id):
+    product = products.get(product_id)
+    if product:
+        return jsonify(product)
+    return jsonify({"error": "Product not found"}), 404
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5001)
+ 
+
+
+II) Docker file and save in notepad with "Dockerfille" to save in as it is format
+
+# Use Python 3.12-slim as the base image
+FROM python:3.12-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Install Flask
+RUN pip install flask
+
+# Copy the app code
+COPY . .
+
+# Expose the port
+EXPOSE 5001
+
+# Run the app
+CMD ["python", "app.py"]
+
+
+2.2 -- order_service
+
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>mkdir exp8_order_service
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>cd exp8_order_service
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app\exp8_order_service>echo. >app.py
+
+I) app.py enter code 
+
+import requests
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/orders/<int:order_id>', methods=['GET'])
+def get_order(order_id):
+    try:
+        # Call product-service
+        product = requests.get(f'http://product-service:5001/products/{order_id}').json()
+        return jsonify({"order_id": order_id, "product": product})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5002)
+ 
+
+
+
+II) Docker and save in notepad with "Dockerfille" to save in as it is format
+
+# Use Python 3.12-slim as the base image
+FROM python:3.12-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Install Flask
+RUN pip install flask requests
+
+# Copy the app code
+COPY . .
+
+# Expose the port
+EXPOSE 5002
+
+# Run the app
+CMD ["python", "app.py"]
+
+
+
+
+Step 3: create a docker-compose-yml and enter code
+
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app\exp8_order_service>cd..
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>echo. > docker-compose.yml
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>notepad docker-compose.yml
+
+services:
+  product-service:
+    build:
+      context: ./exp8_product_service
+    ports:
+      - "5001:5001"
+
+  order-service:
+    build:
+      context: ./exp8_order_service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - product-service
+
+
+
+Step 4: Run the cmd 
+
+open docker app and run the cmd
+
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>docker compose up
+
+C:\Users\Azhar\OneDrive\Desktop\MscIT year 2 sem3\-exp8_microservice-app>docker compose up --build
+ 
+
+Step 5: verify after running docker compose
+
+type v and it will redirect to docker application url to access 
+
+url 
+
+http://localhost:5001/products/1
+http://localhost:5002/orders/1
+
+
+ 
